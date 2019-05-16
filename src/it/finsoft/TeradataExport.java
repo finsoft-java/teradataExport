@@ -106,9 +106,9 @@ public class TeradataExport {
 			dataDaFormattare = dateFormat.get(md.getColumnLabel(i));
 			dataDaFormattare = dataDaFormattare.replace("mm", "MM").replace("DD", "dd");
 			DateFormat formatter = new SimpleDateFormat(dataDaFormattare);
-			dataFinale = formatter.format(rs.getDate(i));
-
+			
 			if (rs.getString(i) != null) {
+				dataFinale = formatter.format(rs.getDate(i));
 				part2Insert.append("'" + dataFinale + "'");
 			} else {
 				part2Insert.append("null");
