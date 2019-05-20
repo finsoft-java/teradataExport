@@ -8,6 +8,9 @@ import java.util.Map;
 
 public class TeradataExport {
 
+	static DateFormat formatter0 = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+	static DateFormat formatter6 = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.ssssss");
+
 	/**
 	 * Si aspetta due argomenti: l'url di connessione JDBC al database, e il
 	 * nome della tabella
@@ -24,35 +27,16 @@ public class TeradataExport {
 		Statement stmt = conn.createStatement();
 		ResultSet rs = stmt.executeQuery(args[1]);
 		ResultSetMetaData md = rs.getMetaData();
-		StringBuilder insertStatement = new StringBuilder();
 		String part1Insert = creaPart1Insert(md);
 		Map<String, String> dateFormat = getFormatoColonneData(conn, md);
 
 		while (rs.next()) {
 
-			StringBuilder part2Insert = new StringBuilder();
-
-			// TODO sposterei questo ciclo for in una procedura "creaPart2Insert"
-			for (Integer i = 1; i <= md.getColumnCount(); i++) {
-
-				if (i == 1) {
-					part2Insert.append(" VALUES (");
-				}
-
-				formattaCampo(part2Insert, md, rs, i, dateFormat);
-
-				if (i != md.getColumnCount()) {
-					part2Insert.append(",");
-				}
-
-				if (i == md.getColumnCount()) {
-					part2Insert.append(" ); ");
-					insertStatement.append(part1Insert);
-					insertStatement.append(part2Insert).append("\n");
-				}
-			}
+			StringBuilder part2Insert = creaPart2Insert(rs, md, dateFormat);
+			
+			String insertStatement = part1Insert + part2Insert;
+			System.out.println(insertStatement);
 		}
-		System.out.println(insertStatement);
 		conn.close();
 	}
 
@@ -61,7 +45,8 @@ public class TeradataExport {
 		System.err.println("     java -jar TeradataExport.jar <jdbc connection url> <query>");
 		System.err.println("     java -jar TeradataExport.jar <jdbc connection url> <query>   >   file.sql");
 		System.err.println("Es.");
-		System.err.println("     java -jar TeradataExport.jar \"jdbc:teradata://<server>/USER=<user>,PASSWORD=<password>,DATABASE=<database>\"  \"SELECT * FROM MYTABLE\"");
+		System.err
+				.println("     java -jar TeradataExport.jar \"jdbc:teradata://<server>/USER=<user>,PASSWORD=<password>,DATABASE=<database>\"  \"SELECT * FROM MYTABLE\"");
 	}
 
 	private static Map<String, String> getFormatoColonneData(Connection conn, ResultSetMetaData md) throws SQLException {
@@ -78,25 +63,26 @@ public class TeradataExport {
 	}
 
 	/**
-	* Formatta in linguaggio SQL il campo i del ResultSet rs, alla riga corrente, e aggiunge il risultato a part2Insert
-	* @param dateFormat e' la mappa restituita da getFormatoColonneData()
-	*/
-	@SuppressWarnings("null")  // TODO verificare e correggere questo warning
+	 * Formatta in linguaggio SQL il campo i del ResultSet rs, alla riga
+	 * corrente, e aggiunge il risultato a part2Insert
+	 * 
+	 * @param dateFormat
+	 *            e' la mappa restituita da getFormatoColonneData()
+	 */
 	private static void formattaCampo(StringBuilder part2Insert, ResultSetMetaData md, ResultSet rs, int i,
 			Map<String, String> dateFormat) throws SQLException {
 
-		// TODO si riesce a verificare già qui se il campo è NULL ?
-		
+		if (rs.getString(i) == null) {
+			part2Insert.append("null");
+			return;
+		}
+
 		switch (md.getColumnTypeName(i)) {
 
 		case "INTEGER": // 1
 		case "DECIMAL": // 0.1726537942886353
 
-			if (rs.getString(i) != null) {
-				part2Insert.append(rs.getString(i));
-			} else {
-				part2Insert.append("null");
-			}
+			part2Insert.append(rs.getString(i));
 			break;
 
 		case "BLOB":
@@ -112,21 +98,13 @@ public class TeradataExport {
 			dataDaFormattare = dateFormat.get(md.getColumnLabel(i));
 			dataDaFormattare = dataDaFormattare.replace("mm", "MM").replace("DD", "dd");
 			DateFormat formatter = new SimpleDateFormat(dataDaFormattare);
-			
-			if (rs.getString(i) != null) {
-				dataFinale = formatter.format(rs.getDate(i));
-				part2Insert.append("'").append(dataFinale).append("'");
-			} else {
-				part2Insert.append("null");
-			}
+
+			dataFinale = formatter.format(rs.getDate(i));
+			part2Insert.append("'").append(dataFinale).append("'");
 			break;
 
 		case "TIMESTAMP":
-                        //TODO verificare che NULL non dia eccezioni
-			//Rendere 'static' questi due DateFormat
-	
-			DateFormat formatter0 = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
-			DateFormat formatter6 = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.ssssss");
+
 			String tmsFinale = null;
 			if (md.getScale(i) == 6) {
 				tmsFinale = formatter6.format(rs.getTimestamp(i));
@@ -136,33 +114,24 @@ public class TeradataExport {
 				System.err.println("ERRORE timestamp non supportato, scale=" + md.getScale(i));
 				return;
 			}
-
-			if (rs.getString(i) != null) {
-				part2Insert.append("'").append(tmsFinale).append("'");
-			} else {
-				part2Insert.append("null");
-			}
+			part2Insert.append("'").append(tmsFinale).append("'");
 			break;
 
 		default: // VARCHAR
 			String stringDaFormattare = rs.getString(i);
-			if (rs.getString(i) != null) {
-				stringDaFormattare = stringDaFormattare.replaceAll("'", "''");
-				part2Insert.append("'").append(stringDaFormattare).append("'");
-			} else {
-				part2Insert.append("null");
-			}
+			stringDaFormattare = stringDaFormattare.replaceAll("'", "''");
+			part2Insert.append("'").append(stringDaFormattare).append("'");
 		}
 	}
-	
+
 	/**
-	* Crea la prima parte dello statement, "insert into nometabella (nomecampo1, nomecampo2, ...)
-	*/
+	 * Crea la prima parte dello statement, "insert into nometabella
+	 * (nomecampo1, nomecampo2, ...)
+	 */
 	private static String creaPart1Insert(ResultSetMetaData md) throws SQLException {
 
 		String nameTable = md.getTableName(1);
 		String schemaTable = md.getSchemaName(1);
-
 		StringBuilder part1Insert = new StringBuilder("Insert into " + schemaTable + "." + nameTable + " (");
 
 		for (Integer i = 1; i <= md.getColumnCount(); i++) {
@@ -175,6 +144,35 @@ public class TeradataExport {
 		part1Insert.append(")");
 
 		return part1Insert.toString();
+	}
+
+	/**
+	 * Crea la seconda parte dello statement insert
+	 * 
+	 * @param dateFormat
+	 *            e' la mappa restituita da getFormatoColonneData()
+	 */
+	private static StringBuilder creaPart2Insert(ResultSet rs, ResultSetMetaData md, Map<String, String> dateFormat)
+			throws SQLException {
+		StringBuilder part2Insert = new StringBuilder();
+
+		for (Integer i = 1; i <= md.getColumnCount(); i++) {
+
+			if (i == 1) {
+				part2Insert.append(" VALUES (");
+			}
+
+			formattaCampo(part2Insert, md, rs, i, dateFormat);
+
+			if (i != md.getColumnCount()) {
+				part2Insert.append(",");
+			}
+
+			if (i == md.getColumnCount()) {
+				part2Insert.append(" ); ");
+			}
+		}
+		return part2Insert;
 	}
 
 }
