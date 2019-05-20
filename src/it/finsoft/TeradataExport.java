@@ -53,7 +53,8 @@ public class TeradataExport {
 		Map<String, String> dateFormat = new HashMap<String, String>();
 		Statement stmt = conn.createStatement();
 		String tableName = md.getTableName(1);
-		String queryTabella = "Select ColumnName,ColumnFormat from dbc.columns where databasename='TBDTD0D' and TableName = '"
+		String schemaTable = md.getSchemaName(1);
+		String queryTabella = "Select ColumnName,ColumnFormat from dbc.columns where databasename='" + schemaTable + "' and TableName = '"
 				+ tableName + "' and columntype like '%DA%'";
 		ResultSet rsTabella = stmt.executeQuery(queryTabella);
 		while (rsTabella.next()) {
