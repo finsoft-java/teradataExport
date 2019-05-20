@@ -136,7 +136,7 @@ public class TeradataExport {
 
 		for (Integer i = 1; i <= md.getColumnCount(); i++) {
 			if (i != md.getColumnCount()) {
-				part1Insert.append(md.getColumnName(i) + ",");
+				part1Insert.append(md.getColumnName(i)).append(",");
 			} else {
 				part1Insert.append(md.getColumnName(i));
 			}
