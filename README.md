@@ -8,7 +8,7 @@ You may export any SQL query, not only a single table.
 ## Build
 From CLI, run:
 
-    mvn package
+    mvn clean package
     
 that will generate `target/teradataExport.jar`
 
