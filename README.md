@@ -6,8 +6,11 @@ Standard tools (such as SQL Assistant or Teradata Studio) do not allow exporting
 You may export any SQL query, not only a single table.
 
 ## Build
-Let Eclipse compile the project, then export into "Runnable JAR file" `TeradataExport.jar`.
-Chose "Extract required libraries into generated JAR" during export.
+From CLI, run:
+
+    mvn package
+    
+that will generate `target/teradataExport.jar`
 
 ## Usage
 From CLI, run:
