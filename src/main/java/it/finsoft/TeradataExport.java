@@ -1,6 +1,11 @@
 package it.finsoft;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
@@ -12,8 +17,8 @@ public class TeradataExport {
 	static DateFormat formatter6 = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.ssssss");
 
 	/**
-	 * Si aspetta due argomenti: l'url di connessione JDBC al database, e il
-	 * nome della tabella
+	 * Si aspetta due argomenti: l'url di connessione JDBC al database, e il nome
+	 * della tabella
 	 * 
 	 * @param args
 	 * @throws SQLException
@@ -33,7 +38,7 @@ public class TeradataExport {
 		while (rs.next()) {
 
 			StringBuilder part2Insert = creaPart2Insert(rs, md, dateFormat);
-			
+
 			String insertStatement = part1Insert + part2Insert;
 			System.out.println(insertStatement);
 		}
@@ -45,17 +50,18 @@ public class TeradataExport {
 		System.err.println("     java -jar TeradataExport.jar <jdbc connection url> <query>");
 		System.err.println("     java -jar TeradataExport.jar <jdbc connection url> <query>   >   file.sql");
 		System.err.println("Es.");
-		System.err
-				.println("     java -jar TeradataExport.jar \"jdbc:teradata://<server>/USER=<user>,PASSWORD=<password>,DATABASE=<database>\"  \"SELECT * FROM MYTABLE\"");
+		System.err.println(
+				"     java -jar TeradataExport.jar \"jdbc:teradata://<server>/USER=<user>,PASSWORD=<password>,DATABASE=<database>\"  \"SELECT * FROM MYTABLE\"");
 	}
 
-	private static Map<String, String> getFormatoColonneData(Connection conn, ResultSetMetaData md) throws SQLException {
+	private static Map<String, String> getFormatoColonneData(Connection conn, ResultSetMetaData md)
+			throws SQLException {
 		Map<String, String> dateFormat = new HashMap<String, String>();
 		Statement stmt = conn.createStatement();
 		String tableName = md.getTableName(1);
 		String schemaTable = md.getSchemaName(1);
-		String queryTabella = "Select ColumnName,ColumnFormat from dbc.columns where databasename='" + schemaTable + "' and TableName = '"
-				+ tableName + "' and columntype like '%DA%'";
+		String queryTabella = "Select ColumnName,ColumnFormat from dbc.columns where databasename='" + schemaTable
+				+ "' and TableName = '" + tableName + "' and columntype like '%DA%'";
 		ResultSet rsTabella = stmt.executeQuery(queryTabella);
 		while (rsTabella.next()) {
 			dateFormat.put(rsTabella.getString("ColumnName").trim(), rsTabella.getString("ColumnFormat").trim());
@@ -64,11 +70,10 @@ public class TeradataExport {
 	}
 
 	/**
-	 * Formatta in linguaggio SQL il campo i del ResultSet rs, alla riga
-	 * corrente, e aggiunge il risultato a part2Insert
+	 * Formatta in linguaggio SQL il campo i del ResultSet rs, alla riga corrente, e
+	 * aggiunge il risultato a part2Insert
 	 * 
-	 * @param dateFormat
-	 *            e' la mappa restituita da getFormatoColonneData()
+	 * @param dateFormat e' la mappa restituita da getFormatoColonneData()
 	 */
 	private static void formattaCampo(StringBuilder part2Insert, ResultSetMetaData md, ResultSet rs, int i,
 			Map<String, String> dateFormat) throws SQLException {
@@ -126,8 +131,8 @@ public class TeradataExport {
 	}
 
 	/**
-	 * Crea la prima parte dello statement, "insert into nometabella
-	 * (nomecampo1, nomecampo2, ...)
+	 * Crea la prima parte dello statement, "insert into nometabella (nomecampo1,
+	 * nomecampo2, ...)
 	 */
 	private static String creaPart1Insert(ResultSetMetaData md) throws SQLException {
 
@@ -150,8 +155,7 @@ public class TeradataExport {
 	/**
 	 * Crea la seconda parte dello statement insert
 	 * 
-	 * @param dateFormat
-	 *            e' la mappa restituita da getFormatoColonneData()
+	 * @param dateFormat e' la mappa restituita da getFormatoColonneData()
 	 */
 	private static StringBuilder creaPart2Insert(ResultSet rs, ResultSetMetaData md, Map<String, String> dateFormat)
 			throws SQLException {
