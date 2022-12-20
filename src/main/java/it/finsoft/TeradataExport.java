@@ -100,10 +100,14 @@ public class TeradataExport {
 		case "DATE":
 
 			String dataFinale = null;
-			String dataDaFormattare = null;
-			dataDaFormattare = dateFormat.get(md.getColumnLabel(i));
-			dataDaFormattare = dataDaFormattare.replace("mm", "MM").replace("DD", "dd");
-			DateFormat formatter = new SimpleDateFormat(dataDaFormattare);
+			String formato = dateFormat.get(md.getColumnLabel(i));
+			if (formato == null) {
+				// could be null if we have no right to read metadata
+				formato = "yyyy-MM-dd";
+			} else {
+				formato = formato.replace("mm", "MM").replace("DD", "dd");
+			}
+			DateFormat formatter = new SimpleDateFormat(formato);
 
 			dataFinale = formatter.format(rs.getDate(i));
 			part2Insert.append("'").append(dataFinale).append("'");
